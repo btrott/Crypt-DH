@@ -1,0 +1,32 @@
+$Id: README,v 1.1 2001/04/10 21:26:36 btrott Exp $
+
+This is Crypt::DH, a module implementing the Diffie-Hellman
+key exchange system.
+
+PREREQUISITES
+
+    * Math::Pari (2.001804 or greater)
+    * Crypt::Random (0.33 or greater)
+
+INSTALLATION
+
+Crypt::DH installation is straightforward. If your cpan shell
+is set up, you should just be able to do
+
+    % perl -MCPAN -e 'install Crypt::DH'
+
+If you don't like that, you can download the distribution; the
+latest version on CPAN can be found in
+
+    ftp://ftp.cpan.org/pub/CPAN/authors/id/B/BT/BTROTT/
+
+Download it, unpack it, then build it as per the usual:
+
+    % perl Makefile.PL
+    % make && make test
+
+Then install it:
+
+    % make install
+
+Benjamin Trott / ben@rhumba.pair.com

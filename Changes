@@ -1,0 +1,6 @@
+$Id: Changes,v 1.1 2001/04/10 21:26:36 btrott Exp $
+
+Revision history for Crypt::DH
+
+0.01  2001.03.22
+    - original version; created by h2xs 1.19
