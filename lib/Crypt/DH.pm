@@ -1,4 +1,4 @@
-# $Id: DH.pm,v 1.8 2001/04/16 07:20:59 btrott Exp $
+# $Id: DH.pm,v 1.9 2001/04/24 22:18:50 btrott Exp $
 
 package Crypt::DH;
 use strict;
@@ -7,7 +7,7 @@ use Crypt::Random qw( makerandom );
 use Math::Pari qw( PARI floor pari2num Mod lift pari2pv );
 
 use vars qw( $VERSION );
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 sub new {
     my $class = shift;

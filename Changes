@@ -1,6 +1,9 @@
-$Id: Changes,v 1.1 2001/04/10 21:26:36 btrott Exp $
+$Id: Changes,v 1.2 2001/04/24 22:19:38 btrott Exp $
 
 Revision history for Crypt::DH
+
+0.02  2001.04.24
+    - Fixed broken test program (still need more tests).
 
 0.01  2001.03.22
     - original version; created by h2xs 1.19
