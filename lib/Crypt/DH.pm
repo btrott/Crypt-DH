@@ -1,4 +1,4 @@
-# $Id: DH.pm,v 1.9 2001/04/24 22:18:50 btrott Exp $
+# $Id: DH.pm,v 1.10 2002/01/20 22:46:26 btrott Exp $
 
 package Crypt::DH;
 use strict;
@@ -7,7 +7,7 @@ use Crypt::Random qw( makerandom );
 use Math::Pari qw( PARI floor pari2num Mod lift pari2pv );
 
 use vars qw( $VERSION );
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 sub new {
     my $class = shift;
@@ -42,7 +42,7 @@ BEGIN {
 sub init {
     my $dh = shift;
     my %param = @_;
-    for my $w (qw( p g )) {
+    for my $w (qw( p g priv_key )) {
         $dh->$w($param{$w});
     }
 }
@@ -50,7 +50,10 @@ sub init {
 sub generate_keys {
     my $dh = shift;
     my $i = bitsize($dh->{p}) - 1;
-    $dh->{priv_key} = makerandom(Size => $i, Strength => 0);
+
+    $dh->{priv_key} = makerandom(Size => $i, Strength => 0)
+        unless defined $dh->{priv_key};
+
     $dh->{pub_key} = mod_exp($dh->{g}, $dh->{priv_key}, $dh->{p});
 }
 
@@ -67,25 +70,6 @@ sub compute_key {
 
 sub bitsize {
     return pari2num(floor(Math::Pari::log($_[0])/Math::Pari::log(2)) + 1);
-}
-
-sub mp2bin {
-    my $p = shift;
-    my $base = PARI(256);
-    my $res = '';
-    {
-        my $r = $p % $base;
-        my $d = PARI($p-$r) / $base;
-        $res = chr($r) . $res;
-        if ($d >= $base) {
-            $p = $d;
-            redo;
-        }
-        elsif ($d != 0) {
-            $res = chr($d) . $res;
-        }
-    }
-    $res;
 }
 
 sub mod_exp {
@@ -200,9 +184,10 @@ own large prime value (I<p>).
 
 Returns the shared secret.
 
-=head2 $dh->priv_key
+=head2 $dh->priv_key([ $priv_key ])
 
-Returns the private key.
+Returns the private key.  Given an argument I<$priv_key>, sets the
+I<priv_key> parameter for this I<Crypt::DH> object.
 
 =head2 $dh->pub_key
 

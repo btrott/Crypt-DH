@@ -2,5 +2,6 @@ Changes
 MANIFEST
 Makefile.PL
 README
+ToDo
 lib/Crypt/DH.pm
 test.pl
