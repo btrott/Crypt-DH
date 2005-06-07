@@ -1,4 +1,4 @@
-$Id: README,v 1.1 2001/04/10 21:26:36 btrott Exp $
+$Id: README 128 2001-04-10 21:26:36Z btrott $
 
 This is Crypt::DH, a module implementing the Diffie-Hellman
 key exchange system.

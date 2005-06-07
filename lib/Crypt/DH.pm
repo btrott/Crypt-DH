@@ -1,18 +1,23 @@
-# $Id: DH.pm,v 1.10 2002/01/20 22:46:26 btrott Exp $
+# $Id: DH.pm 1853 2005-06-07 00:51:39Z btrott $
 
 package Crypt::DH;
 use strict;
 
-use Crypt::Random qw( makerandom );
-use Math::Pari qw( PARI floor pari2num Mod lift pari2pv );
-
+use Math::BigInt lib => "GMP,Pari";
 use vars qw( $VERSION );
-$VERSION = '0.03';
+$VERSION = '0.04';
 
 sub new {
     my $class = shift;
     my $dh = bless {}, $class;
-    $dh->init(@_);
+
+    my %param = @_;
+    for my $w (qw( p g priv_key )) {
+        next unless exists $param{$w};
+        $dh->$w(delete $param{$w});
+    }
+    die "Unknown parameters to constructor: " . join(", ", keys %param) if %param;
+
     $dh;
 }
 
@@ -21,61 +26,74 @@ BEGIN {
     for my $meth (qw( p g pub_key priv_key )) {
         *$meth = sub {
             my($key, $value) = @_;
-            if (ref $value eq 'Math::Pari') {
-                $key->{$meth} = pari2pv($value);
+            if (ref $value eq 'Math::BigInt') {
+                $key->{$meth} = $value;
             }
-            elsif ($value && !(ref $value)) {
-                if ($value =~ /^0x/) {
-                    $key->{$meth} = pari2pv(Math::Pari::_hex_cvt($value));
-                }
-                else {
-                    $key->{$meth} = $value;
-                }
+            elsif (ref $value eq 'Math::Pari') {
+                $key->{$meth} = Math::BigInt->new(Math::Pari::pari2pv($value));
+            }
+            elsif (defined $value && !(ref $value)) {
+                $key->{$meth} = Math::BigInt->new($value);
+            }
+            elsif (defined $value) {
+                die "Unknown parameter type to $meth: $value\n";
             }
             my $ret = $key->{$meth} || "";
-            $ret = PARI("$ret") if $ret =~ /^\d+$/;
             $ret;
         };
     }
 }
 
-sub init {
-    my $dh = shift;
-    my %param = @_;
-    for my $w (qw( p g priv_key )) {
-        $dh->$w($param{$w});
-    }
-}
-
 sub generate_keys {
     my $dh = shift;
-    my $i = bitsize($dh->{p}) - 1;
 
-    $dh->{priv_key} = makerandom(Size => $i, Strength => 0)
-        unless defined $dh->{priv_key};
+    unless (defined $dh->{priv_key}) {
+        my $i = _bitsize($dh->{p}) - 1;
+        eval {
+            $dh->{priv_key} = Crypt::Random::makerandom(Size => $i, Strength => 0);
+        };
+        if ($@) {
+            $dh->{priv_key} = _makerandom($i);
+        }
+    }
 
-    $dh->{pub_key} = mod_exp($dh->{g}, $dh->{priv_key}, $dh->{p});
-}
-
-sub size {
-    my $dh = shift;
-    bitsize($dh->{p}) / 8;
+    $dh->{pub_key} = $dh->{g}->copy->bmodpow($dh->{priv_key}, $dh->{p});
 }
 
 sub compute_key {
     my $dh = shift;
     my $pub_key = shift;
-    mod_exp($pub_key, $dh->{priv_key}, $dh->{p});
+    $pub_key->copy->bmodpow($dh->{priv_key}, $dh->{p});
+}
+*compute_secret = \&compute_key;
+
+sub _bitsize {
+    return length($_[0]->as_bin) - 2;
 }
 
-sub bitsize {
-    return pari2num(floor(Math::Pari::log($_[0])/Math::Pari::log(2)) + 1);
-}
+sub _makerandom {
+    my $size = shift;
 
-sub mod_exp {
-    my($a, $exp, $n) = @_;
-    my $m = Mod($a, $n);
-    lift($m ** $exp);
+    my $bytes = int($size / 8) + ($size % 8 ? 1 : 0);
+
+    my $rand;
+    if (-e "/dev/urandom") {
+        my $fh;
+        open($fh, '/dev/urandom')
+            or die "Couldn't open /dev/urandom";
+        my $got = sysread $fh, $rand, $bytes;
+        die "Didn't read all bytes from urandom" unless $got == $bytes;
+        close $fh;
+    } else {
+        for (1..$bytes) {
+            $rand .= chr(int(rand(256)));
+        }
+    }
+
+    my $bits = unpack("b*", $rand);
+    die unless length($bits) >= $size;
+
+    Math::BigInt->new('0b' . substr($bits, 0, $size));
 }
 
 1;
@@ -95,11 +113,13 @@ Crypt::DH - Diffie-Hellman key exchange system
     ## Generate public and private keys.
     $dh->generate_keys;
 
-    ## Send public key to "other" party, and receive "other"
+    $my_pub_key = $dh->pub_key;
+
+    ## Send $my_pub_key to "other" party, and receive "other"
     ## public key in return.
 
     ## Now compute shared secret from "other" public key.
-    my $shared_secret = $dh->compute_key( $other_pub_key );
+    my $shared_secret = $dh->compute_secret( $other_pub_key );
 
 =head1 DESCRIPTION
 
@@ -146,21 +166,25 @@ you'll need to start with values for I<p> and I<g>; I<p> is a
 large prime, and I<g> is a base which must be larger than 0
 and less than I<p>.
 
-I<Crypt::DH> uses I<Math::Pari> internally for big-integer
+I<Crypt::DH> uses I<Math::BigInt> internally for big-integer
 calculations. All accessor methods (I<p>, I<g>, I<priv_key>, and
-I<pub_key>) thus return I<Math::Pari> objects, as does the
-I<compute_key> method.
+I<pub_key>) thus return I<Math::BigInt> objects, as does the
+I<compute_secret> method.  The accessors, however, allow setting with a
+scalar decimal string, hex string (^0x), Math::BigInt object, or
+Math::Pari object (for backwards compatibility).
 
-=head2 $dh = Crypt::DH->new
+=head2 $dh = Crypt::DH->new([ %param ]).
 
 Constructs a new I<Crypt::DH> object and returns the object.
+I<%param> may include none, some, or all of the keys I<p>, I<g>, and
+I<priv_key>.
 
 =head2 $dh->p([ $p ])
 
-Given an argument I<$p>, sets the I<p> parameter (large prime)
-for this I<Crypt::DH> object.
+Given an argument I<$p>, sets the I<p> parameter (large prime) for
+this I<Crypt::DH> object.
 
-Returns the current value of I<p>.
+Returns the current value of I<p>.  (as a Math::BigInt object)
 
 =head2 $dh->g([ $g ])
 
@@ -175,14 +199,19 @@ Generates the public and private key portions of the I<Crypt::DH>
 object, assuming that you've already filled I<p> and I<g> with
 appropriate values.
 
-=head2 $dh->compute_key( $public_key )
+If you've provided a priv_key, it's used, otherwise a random priv_key
+is created using either Crypt::Random (if already loaded), or
+/dev/urandom, or Perl's rand, in that order.
+
+=head2 $dh->compute_secret( $public_key )
 
 Given the public key I<$public_key> of Party B (the party with which
 you're performing key negotiation and exchange), computes the shared
 secret key, based on that public key, your own private key, and your
 own large prime value (I<p>).
 
-Returns the shared secret.
+The historical method name "compute_key" is aliased to this for
+compatibility.
 
 =head2 $dh->priv_key([ $priv_key ])
 
@@ -196,6 +225,8 @@ Returns the public key.
 =head1 AUTHOR & COPYRIGHT
 
 Benjamin Trott, ben@rhumba.pair.com
+
+Brad Fitzpatrick, brad@danga.com
 
 Except where otherwise noted, Crypt::DH is Copyright 2001
 Benjamin Trott. All rights reserved. Crypt::DH is free

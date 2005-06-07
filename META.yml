@@ -1,0 +1,13 @@
+name: Crypt-DH
+version: 0.04
+abstract: Diffie-Hellman key exchange system
+author: Benjamin Trott <ben+cpan@stupidfool.org>
+license: perl
+distribution_type: module
+requires:
+  Math::BigInt: 1.60
+no_index:
+  directory:
+    - t
+    - inc
+generated_by: Module::Install version 0.36

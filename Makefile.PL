@@ -1,15 +1,20 @@
-# $Id: Makefile.PL,v 1.1 2001/04/10 21:26:36 btrott Exp $
+# $Id: Makefile.PL 1854 2005-06-07 00:54:36Z btrott $
 
-use ExtUtils::MakeMaker;
+use inc::Module::Install;
 
-WriteMakefile(
-    NAME => 'Crypt::DH',
-    DISTNAME => 'Crypt-DH',
-    VERSION_FROM => 'lib/Crypt/DH.pm',
-    AUTHOR => 'Benjamin Trott <ben@rhumba.pair.com>',
-    ABSTRACT => 'Diffie-Hellman key exchange system',
-    PREREQ_PM => {
-        'Math::Pari' => '2.001804',
-        'Crypt::Random' => '0.33',
-    },
-);
+name('Crypt-DH');
+abstract('Diffie-Hellman key exchange system');
+author('Benjamin Trott <ben+cpan@stupidfool.org>');
+version_from('lib/Crypt/DH.pm'),
+license('perl');
+no_index(directory => 't');
+sign(1);
+
+include('ExtUtils::AutoInstall');
+
+requires('Math::BigInt' => '1.60');
+
+auto_include();
+auto_install();
+
+&WriteAll;
