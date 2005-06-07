@@ -1,6 +1,12 @@
-$Id: Changes 1855 2005-06-07 00:55:38Z btrott $
+$Id: Changes 1858 2005-06-07 05:00:44Z btrott $
 
 Revision history for Crypt::DH
+
+0.05  2005.06.06 (bradfitz)
+    - use makerandom_itv w/ proper range for priv_key (thanks to Paul
+      Crowley!)
+    - make _makerandom_itv wrapper around _makerandom to behave similarly
+      when Crypt::Random is not available
 
 0.04  2005.06.06 (bradfitz)
     - Ported to Math::BigInt (which can use PARI,GMP,etc)

@@ -1,11 +1,10 @@
-# $Id: DH.pm 1853 2005-06-07 00:51:39Z btrott $
+# $Id: DH.pm 1858 2005-06-07 05:00:44Z btrott $
 
 package Crypt::DH;
 use strict;
 
 use Math::BigInt lib => "GMP,Pari";
-use vars qw( $VERSION );
-$VERSION = '0.04';
+our $VERSION = '0.05';
 
 sub new {
     my $class = shift;
@@ -49,12 +48,11 @@ sub generate_keys {
 
     unless (defined $dh->{priv_key}) {
         my $i = _bitsize($dh->{p}) - 1;
-        eval {
-            $dh->{priv_key} = Crypt::Random::makerandom(Size => $i, Strength => 0);
-        };
-        if ($@) {
-            $dh->{priv_key} = _makerandom($i);
-        }
+        $dh->{priv_key} =
+            $Crypt::Random::VERSION ?
+            Crypt::Random::makerandom_itv(Strength => 0, Uniform => 1,
+                                          Lower => 1, Upper => $dh->{p} - 1) :
+            _makerandom_itv($i, 1, $dh->{p} - 1);
     }
 
     $dh->{pub_key} = $dh->{g}->copy->bmodpow($dh->{priv_key}, $dh->{p});
@@ -69,6 +67,15 @@ sub compute_key {
 
 sub _bitsize {
     return length($_[0]->as_bin) - 2;
+}
+
+sub _makerandom_itv {
+    my ($size, $min_inc, $max_exc) = @_;
+
+    while (1) {
+        my $r = _makerandom($size);
+        return $r if $r >= $min_inc && $r < $max_exc;
+    }
 }
 
 sub _makerandom {
