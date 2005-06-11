@@ -1,5 +1,5 @@
 name: Crypt-DH
-version: 0.05
+version: 0.06
 abstract: Diffie-Hellman key exchange system
 author: Benjamin Trott <ben+cpan@stupidfool.org>
 license: perl

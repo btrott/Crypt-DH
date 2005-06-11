@@ -1,9 +1,15 @@
-# $Id: 01-dh.t 1854 2005-06-07 00:54:36Z btrott $
+# $Id: 01-dh.t 1860 2005-06-11 06:15:44Z btrott $
 
 use strict;
 
-use Test::More tests => 12;
+use Test::More;
 use Crypt::DH;
+
+my $has_pari;
+BEGIN {
+    $has_pari = eval { require Math::Pari; 1 };
+}
+Test::More->import( tests => 18 + ($has_pari ? 3 : 0));
 
 my @pgs = (
            {
@@ -23,6 +29,17 @@ my @pgs = (
                g => "5",
            }
            );
+
+my $num = '10000000000000000001';
+my @try = ($num, Math::BigInt->new($num));
+push @try, Math::Pari->new($num) if $has_pari;
+for my $try (@try) {
+    my $type = 'any2bigint(' . (ref($try) || 'scalar') . ')';
+    my $val = Crypt::DH::_any2bigint($try);
+    ok($val, $type . ' returns a defined value');
+    is(ref($val), 'Math::BigInt', $type  . ' returns a Math::BigInt');
+    is($val->bstr, $num, $type . ' returns the correct value');
+}
 
 for my $pg (@pgs) {
     my $dh1 = Crypt::DH->new(g => $pg->{g}, p => $pg->{p});

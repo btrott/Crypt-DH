@@ -1,6 +1,11 @@
-$Id: Changes 1858 2005-06-07 05:00:44Z btrott $
+$Id: Changes 1860 2005-06-11 06:15:44Z btrott $
 
 Revision history for Crypt::DH
+
+0.06  2005.06.10
+    - Fixed compute_key/compute_secret to accept a Math::Pari object, so that
+      it's backwards-compatible with e.g. Net::SSH::Perl.
+    - Added _any2bigint and tests for same.
 
 0.05  2005.06.06 (bradfitz)
     - use makerandom_itv w/ proper range for priv_key (thanks to Paul

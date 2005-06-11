@@ -1,10 +1,10 @@
-# $Id: DH.pm 1858 2005-06-07 05:00:44Z btrott $
+# $Id: DH.pm 1860 2005-06-11 06:15:44Z btrott $
 
 package Crypt::DH;
 use strict;
 
 use Math::BigInt lib => "GMP,Pari";
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 sub new {
     my $class = shift;
@@ -24,22 +24,29 @@ BEGIN {
     no strict 'refs';
     for my $meth (qw( p g pub_key priv_key )) {
         *$meth = sub {
-            my($key, $value) = @_;
-            if (ref $value eq 'Math::BigInt') {
-                $key->{$meth} = $value;
-            }
-            elsif (ref $value eq 'Math::Pari') {
-                $key->{$meth} = Math::BigInt->new(Math::Pari::pari2pv($value));
-            }
-            elsif (defined $value && !(ref $value)) {
-                $key->{$meth} = Math::BigInt->new($value);
-            }
-            elsif (defined $value) {
-                die "Unknown parameter type to $meth: $value\n";
+            my $key = shift;
+            if (@_) {
+                $key->{$meth} = _any2bigint(shift);
             }
             my $ret = $key->{$meth} || "";
             $ret;
         };
+    }
+}
+
+sub _any2bigint {
+    my($value) = @_;
+    if (ref $value eq 'Math::BigInt') {
+        return $value;
+    }
+    elsif (ref $value eq 'Math::Pari') {
+        return Math::BigInt->new(Math::Pari::pari2pv($value));
+    }
+    elsif (defined $value && !(ref $value)) {
+        return Math::BigInt->new($value);
+    }
+    elsif (defined $value) {
+        die "Unknown parameter type: $value\n";
     }
 }
 
@@ -60,7 +67,7 @@ sub generate_keys {
 
 sub compute_key {
     my $dh = shift;
-    my $pub_key = shift;
+    my $pub_key = _any2bigint(shift);
     $pub_key->copy->bmodpow($dh->{priv_key}, $dh->{p});
 }
 *compute_secret = \&compute_key;
