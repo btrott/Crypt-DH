@@ -3,8 +3,8 @@
 package Crypt::DH;
 use strict;
 
-use Math::BigInt lib => "GMP,Pari";
-our $VERSION = '0.06';
+use Math::BigInt lib => "GMP,Pari,Calc";
+our $VERSION = '0.07';
 
 sub new {
     my $class = shift;
